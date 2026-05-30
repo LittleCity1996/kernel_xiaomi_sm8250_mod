@@ -31,10 +31,15 @@ jobs:
           rm -f ~/proton-clang/proton-clang-20210522/bin/aarch64-linux-gnu-ld
           rm -f ~/proton-clang/proton-clang-20210522/bin/arm-linux-gnueabi-ld
 
-      - name: Disable OIS driver
+      - name: Disable OIS driver + use AOSP camera
         run: |
           sed -i '/cam_ois\//s/^/#/' techpack/camera/drivers/cam_sensor_module/Makefile
           grep -n 'cam_ois' techpack/camera/drivers/cam_sensor_module/Makefile
+          sed -i '/cam_ois\//s/^/#/' techpack/camera-xiaomi/drivers/cam_sensor_module/Makefile
+          grep -n 'cam_ois' techpack/camera-xiaomi/drivers/cam_sensor_module/Makefile
+          # 改用 AOSP camera 而非 camera-xiaomi (MIUI HAL 和 camera-xiaomi 不兼容)
+          sed -i '/CONFIG_TECHPACK_CAMERA_XIAOMI/d' arch/arm64/configs/thyme_defconfig
+          grep -n 'TECHPACK_CAMERA' arch/arm64/configs/thyme_defconfig
 
       - name: Build kernel
         run: |
