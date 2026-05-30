@@ -1,0 +1,54 @@
+name: Build Kernel (thyme MIUI + SukiSU, no OIS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "android15-lineage22-mod" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: android15-lineage22-mod
+          fetch-depth: 1
+
+      - name: Install deps
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential git curl wget bison flex zip bc cpio libssl-dev ccache python-is-python3
+
+      - name: Cache toolchain
+        id: cache-tc
+        uses: actions/cache@v4
+        with:
+          path: ~/proton-clang
+          key: proton-clang-20210522
+
+      - name: Download toolchain
+        if: steps.cache-tc.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/proton-clang && cd ~/proton-clang
+          wget -q https://github.com/kdrag0n/proton-clang/archive/refs/tags/20210522.zip
+          unzip -q 20210522.zip
+
+      - name: Disable OIS driver
+        run: |
+          # 注释掉 cam_ois 编译行，内核不碰 OIS 硬件，交由 MIUI HAL 控制
+          sed -i '/cam_ois\//s/^/#/' techpack/camera/drivers/cam_sensor_module/Makefile
+          echo "--- Modified Makefile ---"
+          grep -n 'cam_ois' techpack/camera/drivers/cam_sensor_module/Makefile
+
+      - name: Build kernel
+        run: |
+          bash build.sh thyme ksu
+
+      - name: Upload zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kernel_MIUI_thyme_SukiSU-SUSFS_noOIS
+          path: ./Kernel_MIUI_thyme_*.zip
+          compression-level: 0
