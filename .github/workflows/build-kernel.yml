@@ -26,22 +26,27 @@ jobs:
           mkdir -p ~/proton-clang && cd ~/proton-clang
           wget -q https://github.com/kdrag0n/proton-clang/archive/refs/tags/20210522.zip
           unzip -q 20210522.zip
-          # 删除老古董 ld，让系统 ld 接替
           rm -f ~/proton-clang/proton-clang-20210522/bin/ld
           rm -f ~/proton-clang/proton-clang-20210522/bin/aarch64-linux-gnu-ld
           rm -f ~/proton-clang/proton-clang-20210522/bin/arm-linux-gnueabi-ld
 
-      - name: Disable OIS driver + use AOSP camera + fix void return
+      - name: Replace camera-xiaomi with official MIUI camera-nonedxo
         run: |
-          sed -i '/cam_ois\//s/^/#/' techpack/camera/drivers/cam_sensor_module/Makefile
+          rm -rf techpack/camera-xiaomi
+          git init /tmp/camera-nonedxo
+          git -C /tmp/camera-nonedxo remote add origin https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git
+          git -C /tmp/camera-nonedxo config core.sparseCheckout true
+          echo "techpack/camera-nonedxo/*" > /tmp/camera-nonedxo/.git/info/sparse-checkout
+          git -C /tmp/camera-nonedxo pull --depth 1 origin alioth-r-oss
+          mv /tmp/camera-nonedxo/techpack/camera-nonedxo techpack/camera-xiaomi
+          rm -rf /tmp/camera-nonedxo
+
+      - name: Disable OIS in official camera-nonedxo
+        run: |
           sed -i '/cam_ois\//s/^/#/' techpack/camera-xiaomi/drivers/cam_sensor_module/Makefile
-          sed -i '/CONFIG_TECHPACK_CAMERA_XIAOMI/d' arch/arm64/configs/thyme_defconfig
-          # 修复 AOSP camera 中 void 函数返回值的问题
-          sed -i 's/static void cam_mem_util_unmap/static int cam_mem_util_unmap/' techpack/camera/drivers/cam_req_mgr/cam_mem_mgr.c
 
       - name: Build kernel
         run: |
-          # 系统已安装的 aarch64-linux-gnu-ld 在 /usr/bin，工具链 PATH 优先
           bash build.sh thyme ksu
 
       - name: Upload zip
