@@ -31,11 +31,13 @@ jobs:
           rm -f ~/proton-clang/proton-clang-20210522/bin/aarch64-linux-gnu-ld
           rm -f ~/proton-clang/proton-clang-20210522/bin/arm-linux-gnueabi-ld
 
-      - name: Disable OIS driver + use AOSP camera
+      - name: Disable OIS driver + use AOSP camera + fix void return
         run: |
           sed -i '/cam_ois\//s/^/#/' techpack/camera/drivers/cam_sensor_module/Makefile
           sed -i '/cam_ois\//s/^/#/' techpack/camera-xiaomi/drivers/cam_sensor_module/Makefile
           sed -i '/CONFIG_TECHPACK_CAMERA_XIAOMI/d' arch/arm64/configs/thyme_defconfig
+          # 修复 AOSP camera 中 void 函数返回值的问题
+          sed -i 's/static void cam_mem_util_unmap/static int cam_mem_util_unmap/' techpack/camera/drivers/cam_req_mgr/cam_mem_mgr.c
 
       - name: Build kernel
         run: |
