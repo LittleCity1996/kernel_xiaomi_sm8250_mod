@@ -41,8 +41,8 @@ jobs:
           git -C /tmp/camera-nonedxo pull --depth 1 origin alioth-r-oss
           mv /tmp/camera-nonedxo/techpack/camera-nonedxo techpack/camera-xiaomi
           rm -rf /tmp/camera-nonedxo
-          # Makefile 里的 include 路径写死 techpack/camera/（AOSP），改为 camera-xiaomi
-          find techpack/camera-xiaomi -name "Makefile" -exec sed -i 's|techpack/camera/|techpack/camera-xiaomi/|g' {} +
+          # 所有 .h/.c/Makefile 里的 techpack/camera/ 路径改为 camera-xiaomi
+          find techpack/camera-xiaomi \( -name "Makefile" -o -name "*.h" -o -name "*.c" \) -exec sed -i 's|techpack/camera/|techpack/camera-xiaomi/|g' {} +
 
       - name: Disable OIS in official camera-nonedxo
         run: |
