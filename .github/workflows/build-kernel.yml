@@ -16,34 +16,29 @@ jobs:
           ref: android15-lineage22-mod
           fetch-depth: 1
 
-      - name: Install deps
+      - name: Install deps & cross compilers
         run: |
           sudo apt update
-          sudo apt install -y build-essential git curl wget bison flex zip bc cpio libssl-dev ccache python-is-python3
+          sudo apt install -y build-essential git curl wget bison flex zip bc cpio libssl-dev ccache python-is-python3 clang lld binutils-aarch64-linux-gnu binutils-arm-linux-gnueabi gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi
 
-      - name: Cache toolchain
-        id: cache-tc
-        uses: actions/cache@v4
-        with:
-          path: ~/proton-clang
-          key: proton-clang-20210522
-
-      - name: Download toolchain
-        if: steps.cache-tc.outputs.cache-hit != 'true'
+      - name: Download Proton Clang (for headers & lib)
         run: |
           mkdir -p ~/proton-clang && cd ~/proton-clang
           wget -q https://github.com/kdrag0n/proton-clang/archive/refs/tags/20210522.zip
           unzip -q 20210522.zip
+          # 删除老古董 ld，让系统 ld 接替
+          rm -f ~/proton-clang/proton-clang-20210522/bin/ld
+          rm -f ~/proton-clang/proton-clang-20210522/bin/aarch64-linux-gnu-ld
+          rm -f ~/proton-clang/proton-clang-20210522/bin/arm-linux-gnueabi-ld
 
       - name: Disable OIS driver
         run: |
-          # 注释掉 cam_ois 编译行，内核不碰 OIS 硬件，交由 MIUI HAL 控制
           sed -i '/cam_ois\//s/^/#/' techpack/camera/drivers/cam_sensor_module/Makefile
-          echo "--- Modified Makefile ---"
           grep -n 'cam_ois' techpack/camera/drivers/cam_sensor_module/Makefile
 
       - name: Build kernel
         run: |
+          # 系统已安装的 aarch64-linux-gnu-ld 在 /usr/bin，工具链 PATH 优先
           bash build.sh thyme ksu
 
       - name: Upload zip
